@@ -437,7 +437,7 @@ angular.module('ng-token-auth', ['ipCookie']).provider('$auth', function() {
               return obj;
             },
             validateUser: function(opts) {
-              var clientId, configName, expiry, location_parse, params, search, token, uid, url;
+              var clientId, configName, expiry, headers, location_parse, params, provider, search, token, uid, url;
               if (opts == null) {
                 opts = {};
               }
@@ -456,18 +456,25 @@ angular.module('ng-token-auth', ['ipCookie']).provider('$auth', function() {
                     uid = params.uid;
                     expiry = params.expiry;
                     configName = params.config;
+                    if (params.provider) {
+                      provider = params.provider;
+                    }
                     this.setConfigName(configName);
                     this.mustResetPassword = params.reset_password;
                     this.firstTimeLogin = params.account_confirmation_success;
                     this.oauthRegistration = params.oauth_registration;
-                    this.setAuthHeaders(this.buildAuthHeaders({
+                    headers = {
                       token: token,
                       clientId: clientId,
                       uid: uid,
                       expiry: expiry
-                    }));
+                    };
+                    if (provider) {
+                      headers.provider = provider;
+                    }
+                    this.setAuthHeaders(this.buildAuthHeaders(headers));
                     url = $location.path() || '/';
-                    ['auth_token', 'token', 'client_id', 'uid', 'expiry', 'config', 'reset_password', 'account_confirmation_success', 'oauth_registration'].forEach(function(prop) {
+                    ['auth_token', 'token', 'client_id', 'uid', 'provider', 'expiry', 'config', 'reset_password', 'account_confirmation_success', 'oauth_registration'].forEach(function(prop) {
                       return delete params[prop];
                     });
                     if (Object.keys(params).length > 0) {
@@ -587,6 +594,7 @@ angular.module('ng-token-auth', ['ipCookie']).provider('$auth', function() {
               })(this));
             },
             handleValidAuth: function(user, setHeader) {
+              var headers;
               if (setHeader == null) {
                 setHeader = false;
               }
@@ -598,12 +606,16 @@ angular.module('ng-token-auth', ['ipCookie']).provider('$auth', function() {
               this.user.signedIn = true;
               this.user.configName = this.getCurrentConfigName();
               if (setHeader) {
-                this.setAuthHeaders(this.buildAuthHeaders({
+                headers = {
                   token: this.user.auth_token,
                   clientId: this.user.client_id,
                   uid: this.user.uid,
                   expiry: this.user.expiry
-                }));
+                };
+                if (this.user.provider) {
+                  headers.provider = this.user.provider;
+                }
+                this.setAuthHeaders(this.buildAuthHeaders(headers));
               }
               return this.resolveDfd();
             },

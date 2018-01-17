@@ -494,6 +494,9 @@ angular.module('ng-token-auth', ['ipCookie'])
                   expiry     = params.expiry
                   configName = params.config
 
+                  if params.provider
+                    provider = params.provider
+
                   # use the configuration that was used in creating
                   # the confirmation link
                   @setConfigName(configName)
@@ -508,19 +511,22 @@ angular.module('ng-token-auth', ['ipCookie'])
                   @oauthRegistration = params.oauth_registration
 
                   # persist these values
-                  @setAuthHeaders(@buildAuthHeaders({
+                  headers = {
                     token:    token
                     clientId: clientId
                     uid:      uid
                     expiry:   expiry
-                  }))
+                  }
+                  if provider
+                    headers.provider = provider
+                  @setAuthHeaders(@buildAuthHeaders(headers))
 
                   # build url base
                   url = ($location.path() || '/')
 
                   # strip token-related qs from url to prevent re-use of these params
                   # on page refresh
-                  ['auth_token', 'token', 'client_id', 'uid', 'expiry', 'config', 'reset_password', 'account_confirmation_success', 'oauth_registration'].forEach (prop) ->
+                  ['auth_token', 'token', 'client_id', 'uid', 'provider', 'expiry', 'config', 'reset_password', 'account_confirmation_success', 'oauth_registration'].forEach (prop) ->
                     delete params[prop];
 
                   # append any remaining params, if any
@@ -679,12 +685,15 @@ angular.module('ng-token-auth', ['ipCookie'])
 
             # postMessage will not contain header. must save headers manually.
             if setHeader
-              @setAuthHeaders(@buildAuthHeaders({
+              headers = {
                 token:    @user.auth_token
                 clientId: @user.client_id
                 uid:      @user.uid
                 expiry:   @user.expiry
-              }))
+              }
+              if @user.provider
+                headers.provider = @user.provider
+              @setAuthHeaders(@buildAuthHeaders(headers))
 
             # fulfill promise
             @resolveDfd()
@@ -749,7 +758,7 @@ angular.module('ng-token-auth', ['ipCookie'])
 
                 ipCookie.remove(key, cookieOps)
 
-          # persist authentication token, client id, uid
+          # persist authentication token, client id, uid, provider
           setAuthHeaders: (h) ->
             newHeaders = angular.extend((@retrieveData('auth_headers') || {}), h)
             result = @persistData('auth_headers', newHeaders)
